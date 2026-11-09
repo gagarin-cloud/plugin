@@ -76,7 +76,10 @@ do, read-only `allowed-tools`, the icons' shapes, the listing's length limits
 and HTTPS links, exactly five positive and three negative review cases, no
 hooks or app references (which make a ZIP ineligible), nothing
 credential-shaped in a manifest, and both portable files validated against the
-Agent Plugins schemas with `ajv`. `claude plugin validate .` covers Anthropic's
+Agent Plugins schemas with `ajv`. The portal's rules are
+`scripts/check_portable_manifest.py`, and `test_check_portable_manifest.py`
+feeds each one the manifest that breaks it — a check nothing has ever seen
+fail is not a check. `claude plugin validate .` covers Anthropic's
 manifests, and `claude plugin validate ./plugin --strict` is the run its portal
 mirrors.
 

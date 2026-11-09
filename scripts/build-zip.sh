@@ -16,7 +16,10 @@ out="dist/gagarin-plugin-$version.zip"
 
 mkdir -p dist
 rm -f "$out"
-(cd "$ROOT" && zip -q -r -X -D "../$out" plugin.json mcp.json skills assets README.md LICENSE -x '*/.DS_Store')
+# From the index, not the working tree: check.sh validated what git knows
+# about, and a gitignored scratch file whose name fits the allowlist must not
+# ship unreviewed because it happened to be on disk.
+(cd "$ROOT" && git ls-files -- plugin.json mcp.json skills assets README.md LICENSE | zip -q -X -D "../$out" -@)
 
 bad=$(unzip -Z1 "$out" | grep -vE '^(plugin\.json|mcp\.json|README\.md|LICENSE|skills/[^/]+/|skills/[^/]+/SKILL\.md|assets/|assets/[^/]+\.png)$' || true)
 if [ -n "$bad" ]; then

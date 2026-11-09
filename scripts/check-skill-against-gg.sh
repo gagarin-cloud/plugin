@@ -22,8 +22,12 @@ if [ $# -gt 0 ]; then
 fi
 
 python3 scripts/check_skill_against_gg.py
+# Only the skills that name gg at all: the checker treats a file with no gg
+# invocation as the wrong file, which is right for a recipe and wrong for a
+# skill that drives the MCP tools and never the CLI.
 others=()
 for f in plugin/skills/*/SKILL.md; do
-  [ "$f" = plugin/skills/gagarin/SKILL.md ] || others+=("$f")
+  [ "$f" = plugin/skills/gagarin/SKILL.md ] && continue
+  grep -qE '(^|[^A-Za-z-])gg ' "$f" && others+=("$f")
 done
-python3 scripts/check_skill_against_gg.py "${others[@]}"
+[ ${#others[@]} -eq 0 ] || python3 scripts/check_skill_against_gg.py "${others[@]}"

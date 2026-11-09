@@ -6,7 +6,7 @@
 # Whether the skills agree with gg is a separate question and a separate script,
 # because it needs a gg binary; see check-skill-against-gg.sh.
 #
-# Needs jq, curl and node (for npx). SKIP_SCHEMA=1 skips the schema validation,
+# Needs jq, python3, curl and node (for npx). SKIP_SCHEMA=1 skips the schema validation,
 # which fetches the Agent Plugins schemas; everything else runs offline.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -46,13 +46,6 @@ grep_md() {
   printf '%s' "$out"
 }
 
-# A PNG's width and height: the IHDR's first two big-endian words, bytes 16 to 23.
-png_dims() {
-  [ "$(od -An -tx1 -N8 "$1" | tr -d ' \n')" = "89504e470d0a1a0a" ] || fail "$1 is not a PNG"
-  od -An -tu1 -j16 -N8 "$1" | tr -s ' \n' ' ' \
-    | awk '{print $1*16777216+$2*65536+$3*256+$4, $5*16777216+$6*65536+$7*256+$8}'
-}
-
 for f in "$PLUGIN" "$PORTABLE" "$MCP" "$MCPJ" "$MARKET" "$CODEX_MARKET"; do
   [ -f "$f" ] || fail "missing $f"
   jq empty "$f" 2>/dev/null || fail "invalid JSON: $f"
@@ -87,18 +80,10 @@ jq -e '.plugins[] | select(.name=="gagarin") | .policy.installation and .policy.
   || fail "$CODEX_MARKET entry needs policy.installation, policy.authentication and category"
 ok "manifests and marketplaces agree"
 
-# The endpoint is the one thing a user cannot override; assert it verbatim, in
-# both shapes. The portable one declares exactly one remote server, over
-# streamable HTTP, with no headers: OpenAI's portal rejects a nonempty headers
-# object, and a header here would be a credential in a public file.
+# The endpoint is the one thing a user cannot override; assert it verbatim. The
+# portable mcp.json is held to the same address by check_portable_manifest.py.
 jq -e --arg u "$ENDPOINT" '.mcpServers.gagarin.url == $u' "$MCP" >/dev/null \
   || fail "$MCP does not point at $ENDPOINT"
-jq -e --arg u "$ENDPOINT" '
-    (.mcpServers | length) == 1
-    and .mcpServers.gagarin.type == "streamable-http"
-    and .mcpServers.gagarin.url == $u
-    and (.mcpServers.gagarin | has("headers") | not)' "$MCPJ" >/dev/null \
-  || fail "$MCPJ must declare exactly one streamable-http server at $ENDPOINT, with no headers"
 ok "mcp endpoint"
 
 # ─── skills ─────────────────────────────────────────────────────────────────
@@ -211,7 +196,10 @@ icon=$(jq -r '.icon // empty' "$PLUGIN")
 [ -n "$icon" ] || fail "$PLUGIN has no icon"
 icon=$ROOT/${icon#./}
 [ -f "$icon" ] || fail "icon $icon does not exist"
-read -r w h <<< "$(png_dims "$icon")"
+[ "$(od -An -tx1 -N8 "$icon" | tr -d ' \n')" = "89504e470d0a1a0a" ] || fail "icon $icon is not a PNG"
+# Width and height are the IHDR's first two big-endian words, bytes 16 to 23.
+read -r w h <<< "$(od -An -tu1 -j16 -N8 "$icon" | tr -s ' \n' ' ' \
+  | awk '{print $1*16777216+$2*65536+$3*256+$4, $5*16777216+$6*65536+$7*256+$8}')"
 [ "$w" = "$h" ] || fail "icon is ${w}x${h}, not square"
 [ "$w" -ge 512 ] && [ "$w" -le 2048 ] || fail "icon is ${w} px a side, not 512 to 2048"
 [ "$(wc -c < "$icon")" -lt 2097152 ] || fail "icon is 2 MB or more"
@@ -225,79 +213,12 @@ ok "privacy and terms links"
 
 # ─── what OpenAI's plugin portal requires ───────────────────────────────────
 
-OAI='.extensions["com.openai"]'
-
-# A ZIP carrying app references or lifecycle hooks cannot be submitted at all,
-# and these are the shapes they take.
-for p in "$ROOT/hooks" "$ROOT/.app.json" "$ROOT/.codex-plugin"; do
-  [ ! -e "$p" ] || fail "$p exists; hooks and app references make the plugin ineligible for the directory, and a .codex-plugin overlay is ignored once extensions.com.openai is set"
-done
-jq -e "$OAI | (has(\"apps\") or has(\"hooks\")) | not" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: extensions.com.openai must not declare apps or hooks"
-ok "no hooks or app references"
-
-# The onboarding skill runs after installation; it must be one of ours.
-onboarding=$(jq -r "$OAI.onboardingSkill // empty" "$PORTABLE")
-[ -n "$onboarding" ] || fail "$PORTABLE: extensions.com.openai.onboardingSkill is missing"
-[ -f "$ROOT/${onboarding#./}" ] || fail "onboardingSkill $onboarding does not exist"
-ok "onboarding skill"
-
-# The listing: names fit their boxes, every URL is HTTPS, both images exist and
-# are square.
-I="$OAI.interface"
-for k in displayName shortDescription; do
-  n=$(jq -r "$I.$k // \"\" | length" "$PORTABLE")
-  [ "$n" -ge 1 ] && [ "$n" -le 30 ] || fail "$PORTABLE: interface.$k must be 1 to 30 characters (is $n)"
-done
-n=$(jq -r "$I.longDescription // \"\" | length" "$PORTABLE")
-[ "$n" -ge 1 ] && [ "$n" -le 4000 ] || fail "$PORTABLE: interface.longDescription must be 1 to 4000 characters (is $n)"
-for k in developerName category; do
-  [ -n "$(jq -r "$I.$k // empty" "$PORTABLE")" ] || fail "$PORTABLE: interface.$k is missing"
-done
-for k in websiteURL supportURL privacyPolicyURL termsOfServiceURL; do
-  jq -e "$I.$k | type == \"string\" and startswith(\"https://\")" "$PORTABLE" >/dev/null \
-    || fail "$PORTABLE: interface.$k must be an https:// URL"
-done
-jq -e "$I.defaultPrompt | type == \"array\" and length >= 1 and all(type == \"string\" and length > 0)" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: interface.defaultPrompt must be a non-empty array of strings"
-jq -e "$I.brandColor | test(\"^#[0-9a-fA-F]{6}$\")" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: interface.brandColor must be a #rrggbb colour"
-jq -e "$I.capabilities | type == \"array\" and length >= 1" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: interface.capabilities must be a non-empty array"
-for k in composerIcon logo; do
-  img=$(jq -r "$I.$k // empty" "$PORTABLE")
-  [ -n "$img" ] || fail "$PORTABLE: interface.$k is missing"
-  case "$img" in ./assets/*) ;; *) fail "interface.$k must live under ./assets/ (is $img)" ;; esac
-  img=$ROOT/${img#./}
-  [ -f "$img" ] || fail "$k $img does not exist"
-  read -r w h <<< "$(png_dims "$img")"
-  [ "$w" = "$h" ] || fail "$k is ${w}x${h}, not square"
-  [ "$w" -ge 48 ] && [ "$w" -le 4096 ] || fail "$k is ${w} px a side, not 48 to 4096"
-  [ "$(wc -c < "$img")" -lt 5242880 ] || fail "$k is 5 MiB or more"
-  ok "$k ${w}x${h}"
-done
-ok "listing fits the portal"
-
-# Review material: exactly five positive and three negative cases, each with a
-# description and a prompt, the positives with the tools they trigger and the
-# behaviour expected. The portal rejects reviewer credentials and instructions
-# in the ZIP — they go in the dashboard form — and a client secret anywhere.
-R="$OAI.review"
-[ "$(jq "$R.test_cases.positive | length" "$PORTABLE")" = 5 ] || fail "$PORTABLE: review needs exactly five positive test cases"
-[ "$(jq "$R.test_cases.negative | length" "$PORTABLE")" = 3 ] || fail "$PORTABLE: review needs exactly three negative test cases"
-jq -e "$R.test_cases.positive | all(.description and .prompt and .tools_triggered and .expected_behavior | . != null and . != \"\")" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: every positive case needs description, prompt, tools_triggered and expected_behavior"
-jq -e "$R.test_cases.negative | all(.description and .prompt | . != null and . != \"\")" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: every negative case needs description and prompt"
-jq -e "$R.demo_recording_url | type == \"string\" and startswith(\"https://\")" "$PORTABLE" >/dev/null \
-  || fail "$PORTABLE: review.demo_recording_url must be an https:// URL"
-jq -e "$R.commerce == false" "$PORTABLE" >/dev/null || fail "$PORTABLE: review.commerce must be false; nothing is sold through the plugin"
-for k in test_credentials reviewer_instructions clientSecret client_secret; do
-  ! grep -q "\"$k\"" "$PORTABLE" "$MCPJ" || fail "'$k' belongs in the dashboard form, never in the package"
-done
-! grep -qiE 'bearer [A-Za-z0-9_-]{8,}|"authorization"' "$PORTABLE" "$MCPJ" "$MCP" \
-  || fail "a credential-shaped string is in a manifest; this repository is public"
-ok "review material"
+# The portal's own rules — the listing's limits, exactly five positive and three
+# negative review cases, no hooks, app references, headers or credentials in the
+# package — live in Python, where test_check_portable_manifest.py feeds each one
+# the manifest that breaks it. They were jq one-liners here once, and one of
+# them was a no-op nothing ever caught.
+python3 scripts/check_portable_manifest.py "$ROOT"
 
 # The two portable files validate against the Agent Plugins schemas they name.
 # The schemas are fetched, not vendored: the point is to notice when upstream

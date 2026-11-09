@@ -10,7 +10,7 @@
   "homepage": "https://gagarin.cloud",
   "repository": "https://github.com/gagarin-cloud/plugin",
   "license": "MIT",
-  "icon": "./.claude-plugin/icon.png",
+  "icon": "./assets/logo.png",
   "privacyPolicyUrl": "https://gagarin.cloud/privacy",
   "termsOfServiceUrl": "https://gagarin.cloud/terms",
   "keywords": [
