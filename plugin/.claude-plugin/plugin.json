@@ -1,26 +1,28 @@
 {
   "name": "gagarin",
   "displayName": "Gagarin Cloud",
-  "version": "1.19.0",
+  "version": "1.20.0",
   "description": "Deploy and operate applications on Gagarin Cloud — ship a service from a Dockerfile, provision postgres (with extensions such as pgvector and PostGIS), qdrant, valkey, iggy, rabbitmq or s3, wire what may reach what, and put it on the internet.",
   "author": {
     "name": "Gagarin Cloud",
     "url": "https://gagarin.cloud"
   },
   "homepage": "https://gagarin.cloud",
-  "repository": "https://github.com/gagarin-cloud/claude-plugin",
+  "repository": "https://github.com/gagarin-cloud/plugin",
   "license": "MIT",
   "icon": "./.claude-plugin/icon.png",
   "privacyPolicyUrl": "https://gagarin.cloud/privacy",
   "termsOfServiceUrl": "https://gagarin.cloud/terms",
   "keywords": [
-    "deploy",
-    "paas",
+    "chatgpt",
     "cloud",
-    "docker",
-    "postgres",
+    "codex",
+    "deploy",
     "devops",
+    "docker",
     "hosting",
-    "mcp"
+    "mcp",
+    "paas",
+    "postgres"
   ]
 }

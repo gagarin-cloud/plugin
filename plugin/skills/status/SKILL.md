@@ -1,11 +1,10 @@
 ---
-description: Show what is actually running in a Gagarin Cloud project — desired vs actual state, addresses, sizes and today's cost.
-argument-hint: [project]
+name: status
+description: Show what is actually running in a Gagarin Cloud project — desired vs actual state, addresses, sizes and today's cost. Use when the user asks whether a service is up, what is deployed, what an address is, or what a project costs.
 ---
 
-Report the state of the user's Gagarin Cloud project.
-
-Project: $1
+Report the state of the user's Gagarin Cloud project — the one they named, if
+they named one.
 
 If no project was named, read `.gagarin.json` at the repository root: it is the
 note a previous session left of which project this repository is, and its `id`
@@ -29,5 +28,6 @@ Two things about reading the result:
 If a service is waiting on DNS or a certificate, `gg status` says which side it
 is waiting on — theirs or Gagarin's. Say which.
 
-If the Gagarin MCP tools are connected and `gg` is not installed, use the
-`status` tool instead; it reads the same thing.
+If the Gagarin MCP tools are connected and `gg` is not installed — or you
+cannot run commands where you are — use the `status` tool instead; it reads the
+same thing. `projects` lists what there is when no project was named.

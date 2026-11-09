@@ -5,9 +5,9 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    # The skill can go stale without anyone touching this repository: gg is
-    # where the commands change. Catch that within a day rather than on the
-    # next edit here.
+    # The skills can go stale without anyone touching this repository: gg is
+    # where the commands change, and agent-plugins.org is where the schema
+    # does. Catch either within a day rather than on the next edit here.
     - cron: "23 6 * * *"
 
 permissions:
@@ -22,20 +22,30 @@ jobs:
         with:
           node-version: "24"
 
-      # The repository root is the marketplace; plugin/ is what the directory
-      # reads and what people install. --strict on the plugin alone, because
-      # that is the run the directory portal mirrors.
+      # The repository root is the marketplace; plugin/ is what both directories
+      # read and what people install. --strict on the plugin alone, because
+      # that is the run Anthropic's directory portal mirrors.
       - name: claude plugin validate
         run: |
           npm install -g @anthropic-ai/claude-code
           claude plugin validate .
           claude plugin validate ./plugin --strict
 
-      - name: Manifests and skill frontmatter
+      - name: Manifests, skills, and what both portals require
         run: ./scripts/check.sh
 
       - name: What the command checker reads
         run: python3 -m unittest discover -s scripts
+
+      # The ZIP OpenAI's portal takes, built from the same tree the checks just
+      # passed, so the submission is always one download away.
+      - name: Package for the OpenAI plugin portal
+        run: ./scripts/build-zip.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openai-plugin-zip
+          path: dist/*.zip
+          if-no-files-found: error
 
   agrees-with-gg:
     # The skill used to live inside the gg binary, which guaranteed the two
@@ -77,7 +87,7 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
           echo "GG_REF=${ref}" >> "$GITHUB_ENV"
 
-      - name: Every gg command the skill names is a real one
+      - name: Every gg command the skills name is a real one
         run: |
           gg version
           ./scripts/check-skill-against-gg.sh

@@ -265,9 +265,9 @@ later check this before any request and refuse with `docker_not_installed`,
 hint. Relay the hint; do not retry until the human says docker is up, and do not
 run gg with `sudo` to get round a permission error.
 
-This skill is not part of the binary. It lives in
-`gagarin-cloud/claude-plugin` and is installed separately — in Claude Code as a
-plugin, elsewhere with `npx skills add gagarin-cloud/claude-plugin -g`. So it can
+This skill is not part of the binary. It lives in `gagarin-cloud/plugin` and
+is installed separately — in Claude Code, Codex and ChatGPT as a plugin,
+elsewhere with `npx skills add gagarin-cloud/plugin -g`. So it can
 be newer than the `gg` you are holding: **if a command here is refused as
 unknown, check `gg version` and upgrade before concluding the command does not
 exist.** `gg version` also prints, on stderr, "gg vX is available (you have vY)"
