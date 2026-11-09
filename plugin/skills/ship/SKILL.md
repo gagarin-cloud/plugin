@@ -1,28 +1,49 @@
 ---
-name: gagarin-deploy
-description: Takes a repository to production on Gagarin Cloud end to end — Dockerising if needed, creating the project, provisioning databases, wiring dependencies, shipping the image and giving it an address. Use when the user asks to deploy, host, ship or put an application on the internet with Gagarin.
-tools: Skill, Bash, Read, Write, Edit, Glob, Grep
+name: ship
+description: Take the current repository to production on Gagarin Cloud end to end — Dockerising if needed, creating the project, provisioning databases, wiring dependencies, building and shipping the image and giving it an address. Use when the user asks to deploy, host, ship or put an application on the internet with Gagarin.
 ---
 
 You take the repository in front of you to a working HTTPS URL on Gagarin Cloud.
 
-Invoke the `gagarin:gagarin` skill (the Skill tool) before anything else. It is
-the authority on every command, flag and error code here; read it rather than
-guessing. What follows is
-only the order of work and the mistakes that matter.
+Read the `gagarin` skill of this plugin before anything else. It is the
+authority on every command, flag and error code here; read it rather than
+guessing. What follows is only the order of work and the mistakes that matter.
+If your host offers subagents, run everything after "Before anything" in one:
+it is a long procedure, and the main conversation only needs its report.
+
+The user may have named a target — `project/service:port`. If they did not,
+work out a sensible one from the repository and **confirm it with the user
+before creating anything**. `.gagarin.json` at the repository root, if it
+exists, names the project a previous session used and is the default when no
+target names one; still confirm.
 
 ## Before anything
 
-Run `gg whoami`. If the shell cannot find `gg`, stop and tell the user to run
-`/gagarin:setup` — do not attempt the deploy over MCP tools alone, because they
-cannot build or push an image. If it reports no credentials, stop and tell them
-to run `gg login`; relay the link and code exactly as printed and never handle a
+Two things are faster to catch here than three steps in:
+
+- `gg` is on the PATH. If it is not, stop and tell the user to run this
+  plugin's `setup` skill (`/gagarin:setup` in Claude Code). The MCP tools
+  cannot substitute: they deliberately cannot build or push an image, and that
+  is most of this procedure. The same applies if you cannot run commands where
+  you are (ChatGPT on the web, for instance): say that building happens with
+  `gg ship` on the machine that holds the source, and that from here you can
+  deploy an image already in the registry, wire dependencies, add an address
+  and read status over the MCP tools — and stop.
+- `docker` is running (`docker info`). `gg build` and `gg push` shell out to
+  it. If it is not, ask the user to start or install it and stop there.
+
+Then `gg whoami`. If it reports no credentials, stop and tell them to run
+`gg login`; relay the link and code exactly as printed and never handle a
 secret yourself.
 
-Then read `.gagarin.json` at the repository root, if there is one: it is the
-note a previous session left of which project this repository is (the skill's
-"Which project this repository is"). Then `gg projects`, before assuming a
-project exists or that you may write to it. If the note names a project
+`git` is not required. If the directory is not a repository, or `git` is
+missing, say once that `.gagarin.json` will not be committed and carry on. If
+it is a repository with uncommitted changes, tell the user the image will be
+tagged from the clock rather than the commit, and let them commit first if they
+want the hash — do not commit for them.
+
+Then read `.gagarin.json`, if there is one, and `gg projects`, before assuming
+a project exists or that you may write to it. If the note names a project
 `gg projects` does not list, the API is right — fix the file and say so. A
 `viewer` role means every deploy will be refused.
 
@@ -30,8 +51,8 @@ If the project already exists and the Gagarin MCP tools are connected, call
 `memory_briefing` for it before reading any code, with a `focus` that says what
 you are about to do ("deploy the web service"): a previous session may already
 have found the port, the Dockerfile quirk and the variables the app needs.
-Without the MCP tools, skip this — memory is unavailable there, and
-nothing else waits on it.
+Without the MCP tools, skip this — memory is unavailable there, and nothing
+else waits on it.
 
 ## The order
 

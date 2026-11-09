@@ -1,9 +1,16 @@
 ---
-description: Get this machine ready to deploy on Gagarin Cloud — install the gg CLI if it is missing, sign in, and check the rest of the toolchain (docker, git, gh or glab).
+name: setup
+description: Get this machine ready to deploy on Gagarin Cloud — install the gg CLI if it is missing, sign in, and check the rest of the toolchain (docker, git, gh or glab). Use when the user asks to set up, install or configure Gagarin, or when gg is not found.
 ---
 
 Get the user ready to use Gagarin Cloud. Work through this in order and stop at
 the first step that needs them.
+
+If you cannot run commands where you are (ChatGPT on the web, for instance),
+none of this is yours to do: tell the user that `gg` is installed on the machine
+that holds their source, with the one-liner on https://gagarin.cloud or a
+package manager, and that from here the Gagarin MCP tools cover everything
+except building and pushing an image. Stop there.
 
 ## 1. Is `gg` already here?
 
@@ -108,7 +115,8 @@ them decide. A missing optional tool is a sentence, not a blocker.
 ## 6. Tell them what they have
 
 Briefly: `gg` drives everything, and the `gagarin` skill in this plugin
-documents it. If this session also has the Gagarin MCP tools connected, mention
+documents it; the `ship` skill takes a repository to a working address and the
+`ci` skill wires a pipeline to deploy on push. If this session also has the Gagarin MCP tools connected, mention
 that those cover the same API without a local install — but that **only `gg` can
 build and push an image**, because that needs docker where the source is.
 

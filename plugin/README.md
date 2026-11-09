@@ -1,32 +1,38 @@
-# The Gagarin plugin for Claude Code
+# The Gagarin plugin
 
 [Gagarin](https://gagarin.cloud) runs your containers on managed infrastructure.
 There are no manifest files and no config files: the API is the only way state
 changes, which is why neither you nor your agent can ever be out of sync with
 what is actually running.
 
-```
-/plugin marketplace add gagarin-cloud/claude-plugin
-/plugin install gagarin@gagarin-cloud
-```
+One plugin, three hosts:
 
-That gives you four things:
+| | |
+|---|---|
+| **Claude Code** | `/plugin marketplace add gagarin-cloud/plugin` then `/plugin install gagarin@gagarin-cloud` |
+| **Codex CLI** | `codex plugin marketplace add gagarin-cloud/plugin`, then `/plugins` |
+| **ChatGPT, Codex app** | search the Plugins Directory for *Gagarin Cloud* |
 
-- **The skill** — the whole product, written for an agent: the model, every
-  command, every error code, and the mistakes worth not making. It ships here,
-  not inside `gg`, so it can be newer than the `gg` you have; it says which
-  version it assumes and tells an agent to check `gg version` before concluding
-  a command does not exist.
+That gives you two things:
+
+- **The skills.** `gagarin` is the whole product, written for an agent: the
+  model, every command, every error code, and the mistakes worth not making.
+  Beside it, four procedures: **`setup`** installs `gg` and signs you in,
+  **`ship`** takes a repository to a working HTTPS URL, **`status`** reads what
+  is actually running, **`ci`** wires a pipeline to deploy on push with a
+  credential that can deploy but never destroy. In Claude Code they are
+  `/gagarin:setup`, `/gagarin:ship`, `/gagarin:status` and `/gagarin:ci`; in
+  Codex, `$setup` and so on. They ship here, not inside `gg`, so they can be
+  newer than the `gg` you have; the reference skill says which version it
+  assumes and tells an agent to check `gg version` before concluding a command
+  does not exist.
 - **The MCP server** at `https://mcp.gagarin.cloud/mcp` — the Gagarin API as
   tools, and the project's **memory**: the durable facts an agent keeps about a
   codebase so the next session does not rediscover them, reachable only here.
   A fact that changes takes a key and is replaced, not piled up; a memory is
-  confirmed when checked, disputed when wrong, and `memory_review` says what to tidy.
-  You sign in with GitHub or Google when Claude Code asks; nothing is installed
-  and no token passes through the agent.
-- **Commands** — `/gagarin:setup`, `/gagarin:status`, `/gagarin:ship`.
-- **Subagents** — `gagarin-deploy` takes a repository to a working HTTPS URL;
-  `gagarin-ci` wires a pipeline to deploy on push.
+  confirmed when checked, disputed when wrong, and `memory_review` says what to
+  tidy. You sign in with GitHub or Google when the host asks; nothing is
+  installed and no token passes through the agent.
 
 ## You still want the CLI
 
@@ -34,7 +40,9 @@ The MCP server is the same API in another shape, and it deliberately cannot do
 four things: **build** an image, **push** one, open a **tunnel**, or **wait** for
 a job. The first two shell out to docker where your source is, and a server on
 the internet has neither. So `gg` is the larger surface, and the way to get an
-image into the registry:
+image into the registry. In Codex and Claude Code the agent has a shell and
+runs it; in ChatGPT on the web it does not, and operates what is already
+running.
 
 ```
 curl -fsSL https://gagarin.cloud/install.sh | sh
@@ -59,7 +67,7 @@ or `winget install Gagarin.gg`. Or `go install
 github.com/gagarin-cloud/gg@latest`, or a `.deb`, `.rpm` or `.apk` from the
 [releases page](https://github.com/gagarin-cloud/gg/releases).
 
-`/gagarin:setup` walks through it. If the machine has a package manager, setup
+The `setup` skill walks through it. If the machine has a package manager, setup
 installs `gg` with it; otherwise it hands you the one-liner above to run
 yourself, because the plugin never downloads and runs code on its own. Then
 `gg login`, and a check of the rest of the toolchain:
@@ -77,14 +85,14 @@ yourself, because the plugin never downloads and runs code on its own. Then
 Setup installs only `gg`; for the rest it tells you what is missing and how to
 get it.
 
-## Not using Claude Code?
+## Any other agent
 
-The skill is an [Agent Skills](https://agentskills.io) skill, which Cursor,
-Codex, Copilot, Cline, Windsurf, Goose, opencode, Zed and about seventy others
+The reference skill is an [Agent Skills](https://agentskills.io) skill, which
+Cursor, Copilot, Cline, Windsurf, Goose, opencode, Zed and about seventy others
 read. Install it into any of them:
 
 ```
-npx skills add gagarin-cloud/claude-plugin -g
+npx skills add gagarin-cloud/plugin -g
 ```
 
 `-g` installs for your user; drop it to add the skill to one project instead.

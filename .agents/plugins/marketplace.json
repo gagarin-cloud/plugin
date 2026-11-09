@@ -1,0 +1,20 @@
+{
+  "name": "gagarin-cloud",
+  "interface": {
+    "displayName": "Gagarin Cloud"
+  },
+  "plugins": [
+    {
+      "name": "gagarin",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

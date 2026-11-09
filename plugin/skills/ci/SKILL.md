@@ -1,19 +1,27 @@
 ---
-name: gagarin-ci
-description: Wires a repository's CI pipeline to deploy to Gagarin Cloud on push — mints a scoped deploy credential, stores it as a secret, and writes the workflow. Use when the user asks to set up continuous deployment, automate deploys, or deploy from GitHub Actions or another CI system to Gagarin.
-tools: Skill, Bash, Read, Write, Edit, Glob, Grep
+name: ci
+description: Wire a repository's CI pipeline to deploy to Gagarin Cloud on push — mint a scoped deploy credential, store it as a secret, and write the workflow. Use when the user asks to set up continuous deployment, automate deploys, or deploy from GitHub Actions or another CI system to Gagarin.
 ---
 
 You wire this repository's CI to deploy to Gagarin Cloud on push.
 
-Invoke the `gagarin:gagarin` skill (the Skill tool) before anything else: its
-**"Setting up CI"** section is the recipe. Read it. What follows is the order of
-work and the rules you must not break.
+Read the `gagarin` skill of this plugin before anything else: its **"Setting up
+CI"** section is the recipe. What follows is the order of work and the rules
+you must not break. If your host offers subagents, run the rest of this in one:
+it is a long procedure, and the main conversation only needs its report.
+
+Everything here runs on the machine that holds the repository. If you cannot
+run commands where you are (ChatGPT on the web, for instance), hand the user
+the recipe instead — the `gg creds create` line and the workflow — and say
+which secret to set where. Do not try to do it over the MCP tools: there is no
+route from them to the forge's secret store, and `create_credential` would put
+the secret in the transcript.
 
 ## The order
 
 1. **`gg whoami`** — you need a working credential to mint one from. If there is
-   none, stop and tell the user to run `/gagarin:setup`.
+   none, stop and tell the user to run this plugin's `setup` skill
+   (`/gagarin:setup` in Claude Code).
 2. **Find out what CI they use.** Look for `.github/workflows/`, `.gitlab-ci.yml`,
    `.buildkite/`, `cloudbuild.yaml`. Ask if it is ambiguous. Do not assume GitHub.
    `git remote get-url origin` says where the repository lives.
