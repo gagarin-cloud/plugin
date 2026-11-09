@@ -92,6 +92,11 @@ first; they are the parts that stop you getting it wrong.
 | `gg transfer P EMAIL` | offer the project, and its bill, to a member (they accept by email) |
 | `gg destroy P` or `P/NAME` | delete a project, a service or a resource (needs a human) |
 | `gg eject P -o file.yaml` | the Kubernetes manifests, so you can leave (external and s3 keys are placeholders; `--with-secrets` includes them) |
+| `gg recipe snap P [--dry-run]` | publish a project as a recipe, owner only; `--version`, `--as`, `--source`, `--notes`. Dry run first |
+| `gg recipe show RECIPE[@VERSION]` / `recipe ls` | read a recipe (`--format json` for the manifest); the ones this account published |
+| `gg recipe install RECIPE[@VERSION] NEW_PROJECT --input NAME=FILE` | deploy a recipe into a new project, one env file per declared input |
+| `gg recipe diff P` / `recipe update P [--to V] [--force]` | what a newer version changes; apply it (removals need a human) |
+| `gg recipe rm RECIPE[@VERSION]` | delete a recipe or one version (needs a human) |
 | `gg version` | which gg this is |
 
 Three environment variables override the credential file, and exist for CI:
@@ -1816,6 +1821,115 @@ document store, and that is not an error.
 Never write a one-line Dockerfile that only says `FROM` in order to get an image
 in. `gg registry copy` is the same thing, done properly, and it copies every
 architecture the source published rather than whatever your laptop cached.
+
+## Recipes: a project other people can deploy
+
+A recipe is a published snapshot of a project: its services, jobs, resources,
+dependencies and sizes. Anyone who has the recipe's 8-character id can deploy it
+into a **new** project of their own. It is never installed into an existing
+project. Its deploy page is `https://my.gagarin.cloud/deploy/<recipe-id>`, and
+a publisher can put this badge in a README:
+
+```
+[![Deploy to Gagarin](https://gagarin.cloud/deploy-button.svg)](https://my.gagarin.cloud/deploy/<id>)
+```
+
+Recipes are not part of `.gagarin.json`. That file still only names the project.
+
+### Publishing: `gg recipe snap`
+
+```
+gg recipe snap shop --dry-run                       what would be published, and the floor
+gg recipe snap shop                                 publish, at the floor version
+gg recipe snap shop --version 1.2.0 --as shop-kit   pick the version and the name
+gg recipe snap shop --source https://github.com/acme/shop --notes "faster checkout"
+```
+
+Only the project's owner can snap. **Run `--dry-run` first**, and show the user
+the floor and what will be published before you publish. A recipe version is
+immutable once it exists.
+
+**Env in a recipe never holds secrets.** Plain env on a service or a job is
+copied as it is, so anything secret-shaped must not be there. Secrets belong in
+an `external` resource. A recipe keeps the external's variable names and never
+their values, and each name becomes an input the deployer supplies. If snap
+answers `env_looks_secret`, it names the variables:
+
+```
+gg resource add shop/stripe external --env-file stripe.env
+gg deps add shop/api stripe
+gg deploy shop/api:8080 api:v3                      restate the env without them
+gg recipe snap shop                                 and snap again
+```
+
+Do not rename a variable to get past the check. Move the value to an external.
+
+### The floor
+
+Each snap has a lowest allowed version, worked out from the previous one:
+
+- a removal, a rename, a volume change or a type change forces a **major**
+- an addition, or a bigger monthly bill, forces at least a **minor**
+- anything else is free, and may be a patch
+
+Omit `--version` to take the floor. A version below it is refused
+`version_below_floor`, and the dry run prints the reasons.
+
+### Reading
+
+```
+gg recipe show a1b2c3d4                  the graph, inputs, monthly cost, deploy URL
+gg recipe show a1b2c3d4@1.2.0            one version
+gg recipe show a1b2c3d4 --format json    the manifest, for reading by a program
+gg recipe ls                             the recipes this account published
+```
+
+`show` works on any recipe id, not only your own. Read it before you install,
+and tell the user what it will cost and which inputs it wants.
+
+### Installing: `gg recipe install`
+
+```
+gg recipe install a1b2c3d4 shop --input stripe=stripe.env
+gg recipe install a1b2c3d4@1.2.0 shop --input stripe=stripe.env --input mail=mail.env
+```
+
+Always a new project: `NEW_PROJECT` must not exist yet. Pass one `--input
+NAME=FILE` for every input the recipe declares, which `gg recipe show` lists.
+Each file is an env file. **Never put a value on the command line.** Ask the
+human for the values, write them to the file, make sure the file is
+gitignored, and delete it when the install finishes. gg refuses up front when a
+declared input has no `--input`, and it never prints what a file holds. The
+install copies the images into the new project, then starts everything. It ends
+with the project's status, so follow the usual rule and read it before you
+promise a URL.
+
+### Updating
+
+```
+gg recipe diff shop                      what the newest version would change
+gg recipe diff shop --to 1.3.0
+gg recipe update shop                    apply it
+gg recipe update shop --to 1.3.0 --input mail=mail.env
+gg recipe update shop --force            overwrite what was changed by hand
+```
+
+An update is the patch between two versions, not a reinstall. Always `diff`
+first and tell the user what changes. A new input needs its `--input` file, the
+same as an install. An update that **removes** something needs a human's
+approval, like any destroy. If the project was changed by hand where the patch
+also changes it, the update refuses with a conflict. Ask the user before you
+pass `--force`, because it overwrites their change.
+
+### Removing
+
+```
+gg recipe rm a1b2c3d4@1.2.0              one version
+gg recipe rm a1b2c3d4                    the recipe, and every version
+```
+
+This needs a human's approval, like every destroy: follow "Destroying things".
+Projects already installed from the recipe keep running.
 
 ## Addresses
 
