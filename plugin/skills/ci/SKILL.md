@@ -13,9 +13,8 @@ it is a long procedure, and the main conversation only needs its report.
 Everything here runs on the machine that holds the repository. If you cannot
 run commands where you are (ChatGPT on the web, for instance), hand the user
 the recipe instead — the `gg creds create` line and the workflow — and say
-which secret to set where. Do not try to do it over the MCP tools: there is no
-route from them to the forge's secret store, and `create_credential` would put
-the secret in the transcript.
+which secret to set where. Do not try to do it over the MCP tools: no tool
+there hands out a secret, by design.
 
 ## The order
 
@@ -36,12 +35,12 @@ the secret in the transcript.
    rather than guessing. If the two disagree, the API is right. Do not write
    the note here if it is absent: that is the deploy's job, and there may be
    no project yet.
-5. **Mint a credential**, named for where it will live:
-   `gg creds create --name "github actions: <owner>/<repo>"`.
-6. **Put it straight into the secret store** — see the rule below.
-7. **Write the workflow.** Install gg, `gg registry login`, build and push
+5. **Mint a credential straight into the secret store**, named for where it
+   will live (`"github actions: <owner>/<repo>"`) — the one-line pipe in the
+   rule below, never `gg creds create` on its own, which prints it.
+6. **Write the workflow.** Install gg, `gg registry login`, build and push
    tagged with the commit, deploy, then `gg status`.
-8. **Tell them what to check** on the first run — and, once they have pushed,
+7. **Tell them what to check** on the first run — and, once they have pushed,
    watch it with the forge CLI (the skill's "Watch the first run").
 
 ## Rules that are not negotiable
