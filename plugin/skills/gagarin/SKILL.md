@@ -91,7 +91,7 @@ first; they are the parts that stop you getting it wrong.
 | `gg deps add P/SVC NAME...` / `deps ls` / `deps rm` | what a service may reach, and whose credentials it holds (`rm` needs a human) |
 | `gg domain add P/SVC [DOMAIN]` / `domain ls P` / `domain rm` | addresses on the internet |
 | `gg status PROJECT` | desired vs actual, addresses, sizes, today's cost |
-| `gg metrics P[/SVC] [--window 1h\|24h\|7d\|30d]` | usage from real numbers: every service now, or one service's current, average, peak and limit over a window. See Metrics |
+| `gg metrics P[/SVC] [--window 1h\|24h\|7d\|30d]` | usage from real numbers: every service now, or one service's last value (and when), average, peak and limit over a window. See Metrics |
 | `gg logs P/SVC` | recent logs |
 | `gg history P/SVC` / `gg rollback P/SVC [--to N]` | every deploy; put one back |
 | alerts (no gg command) | push-notify a member's own devices when a service goes down, runs short of memory, CPU or disk, or answers with 5xx; the human turns it on with the switch at my.gagarin.cloud/projects/P/alerts, which also sends a test. See Alerts |
@@ -2187,12 +2187,13 @@ its size, CPU throttling (the share of periods), and network in and out
 not measured is `null`: a service that just started, no volume, no address.
 Figures appear a minute or two after a service starts.
 
-- `gg metrics PROJECT` is a table of every service now: CPU, memory, disk, and
-  req/s, 5xx and p95 for the public ones.
-- `gg metrics PROJECT/SVC [--window 1h|24h|7d|30d]` gives current, average, peak
-  and limit for each figure over the window.
+- `gg metrics PROJECT` is a table of every service now: kind, CPU, memory,
+  disk, throttling and network, plus req/s, 5xx and p95 for the public ones.
+- `gg metrics PROJECT/SVC [--window 1h|24h|7d|30d]` gives the last value and
+  when it was taken, average, peak and limit for each figure over the window.
 - In MCP, `metrics` takes `{project, service?, window?}`: project-wide figures
-  now, or one service's last/avg/peak/limit per series over a window.
+  now, or one service's last (with `last_at`)/avg/peak/limit per series over a
+  window. `window` without `service` is refused `window_needs_service`.
 - The console has a **Metrics** tab, `https://my.gagarin.cloud/projects/<id>/metrics`
   (`?service=NAME&window=24h`).
 
