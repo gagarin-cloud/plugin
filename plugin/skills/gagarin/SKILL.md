@@ -43,6 +43,13 @@ first; they are the parts that stop you getting it wrong.
    config: a port, a log level, a sibling's URL. A database password arrives
    with `gg deps add`; a third-party key is an `external` resource. See "What
    does not go in env" below.
+   **And no secret value ever passes through your output** — not the
+   terminal, not this chat, not a summary or a commit. A command that takes one
+   reads it from a file (`--env-file`, `--input NAME=FILE`, `"$(cat FILE)"`),
+   never `K=value` typed on a command line; a command that produces one writes
+   it to a file or pipes it into the store it is for (`> .env.db`,
+   `| gh secret set`). Reach for `--names` before values. Never ask your human
+   to paste a secret into the chat.
 8. **If a resource type exists, use it** (`postgres`, `qdrant`, `valkey`,
    `iggy`, `rabbitmq`, `s3`, `external`). If one does not, an ordinary service with a volume is the normal
    path, not a workaround.
@@ -74,10 +81,10 @@ first; they are the parts that stop you getting it wrong.
 | `gg resource add P/NAME TYPE` | provision postgres, qdrant, valkey, iggy, rabbitmq, s3 or external |
 | `gg resource add P/db postgres --ext vector --ext postgis` | the postgres extensions it should have, one `--ext` each — the whole set, every time you pass it |
 | `gg resource public P/NAME` | make an `s3` bucket listable and readable by anyone; `gg resource private P/NAME` undoes it |
-| `gg resource secrets P/NAME` | its connection values, for something outside the project |
+| `gg resource secrets P/NAME > .env.NAME` | its connection values, into a file for something outside the project — never printed |
 | `gg resource secrets P/NAME --names` | just the variable names it publishes, no values |
 | `gg resource rotate P/NAME` | new credentials, and everything holding them rolls |
-| `gg resource rotate P/NAME --set K=V` | change one value an external publishes, keeping the rest |
+| `gg resource rotate P/NAME --set K="$(cat FILE)"` | change one value an external publishes, keeping the rest; the value comes from a file |
 | `gg rollback P/NAME` | put a previous revision back — a service's deploy, or an external's values |
 | `gg connect P/NAME` | that resource on this machine, for as long as the command runs |
 | `gg resource backup` / `backups` / `restore P/NEW --source OLD` | postgres, qdrant and iggy recovery |
@@ -422,12 +429,10 @@ it.** A pipeline gets one of its own, minted from the one you already hold.
 
 ### 1. Mint the credential
 
-```
-gg creds create --name "github actions: acme/web"
-```
-
-The secret goes to **stdout alone on its line**; everything else goes to stderr.
-So it pipes straight into a secret store and nothing has to touch disk:
+`gg creds create --name "github actions: acme/web"` prints the secret to
+**stdout alone on its line**, and everything else to stderr. Never run it on
+its own, which would put the secret in your output: pipe it straight into the
+secret store, so nothing touches disk or the transcript:
 
 ```
 gh secret set GAGARIN_TOKEN --body "$(gg creds create --name "github actions: acme/web" 2>/dev/null)"
@@ -724,16 +729,16 @@ Why a secret in a deploy env is the wrong place, every time:
   key they forget.
 - **It is a copy per service.** Three services using one key means three
   deploys to rotate it, and the one you forget keeps authenticating with a
-  revoked key. An external is one row: `gg resource rotate --set K=V` changes one
+  revoked key. An external is one row: `gg resource rotate --set` changes one
   key, every holder is restarted, and `gg rollback P/NAME` undoes it.
 - **It lives in a file on someone's machine and in CI**, because it has to be
   restated on every deploy. An external is stated once.
 
 **What you do as an agent:**
 
-- If the user hands you a credential for a service, make it an `external`
-  (written to a file first, never on the command line: see the external section).
-  Do not pass it with `--env`, and do not put it in a `.env` that a deploy reads.
+- A credential for a service becomes an `external`, from a file your human
+  writes (see the external section). Do not ask for it in chat, do not pass it
+  with `--env`, and do not put it in a `.env` that a deploy reads.
 - If a `.env` you were asked to deploy with holds secrets, say so before
   deploying, and offer to move them out. Do not quietly ship them, and do not
   quietly drop them either: the service would start without them.
@@ -746,7 +751,7 @@ Moving a secret out of a deploy env, without a moment where the service lacks
 it:
 
 ```
-gg resource add shop/stripe external --env-file .env.stripe   # API_KEY=sk_live_…
+gg resource add shop/stripe external --env-file .env.stripe   # holds API_KEY
 gg deps add shop/web stripe          # web now also holds STRIPE_API_KEY
 gg deploy shop/web:8080 web:v3 --env-file .env   # the same .env, minus STRIPE_API_KEY
 ```
@@ -1421,8 +1426,8 @@ Four rules that follow, and each one fails quietly if you get it wrong:
 
 ```
 gg resource secrets shop/db --names         # just the names — reach for this first
-gg resource secrets shop/db                 # KEY=VALUE lines, for --env-file
-gg resource secrets shop/db --format json   # for jq
+gg resource secrets shop/db > .env.db       # KEY=VALUE lines into a file, for --env-file
+gg resource secrets shop/db --format json | jq -r .env.DB_URL > db.url   # one value, into a file
 ```
 
 ### Meddling from this machine: `gg connect`
@@ -1486,15 +1491,16 @@ it means three deploys, and a deploy you forget leaves a service authenticating
 with a revoked key. As a resource it is one row and rotating is one command.
 
 - **Use `--env-file`, not `--env`.** A key on the command line goes into the shell
-  history and into the transcript of every agent that ran the command. If the
-  user hands you a key in chat, write it to a file first, use the file, and tell
-  them that file holds a live credential.
+  history and into the transcript of every agent that ran the command. Ask your
+  human to write the key into `.env.NAME` themselves; do not ask for it in chat.
+  If they paste one anyway, write it to the file without repeating it, and tell
+  them it is now in this chat's history, so it should be rotated at the provider.
 - **Restating an external is refused** once it exists (`already_exists`). That
   refusal is deliberate: restating from an old `.env` would roll the key
   *backwards*, and the failure would be an authentication error nobody would
   connect to the command they ran. Changing values is `gg resource rotate`, and
-  changing *one* of them is `gg resource rotate --set K=V`, which leaves the
-  rest alone.
+  changing *one* of them is `gg resource rotate --set K="$(cat FILE)"`, which
+  leaves the rest alone and keeps the value off the command line.
 - **It runs nothing.** No container, no port, no size, no storage, no backups,
   nothing to become ready. `gg status` shows it as `◆` and leaves every
   container column a dash; what it publishes is `gg resource secrets P/NAME
@@ -1669,14 +1675,14 @@ A bucket the user already has somewhere else is still an `external`.
 ### Rotating credentials
 
 ```
-gg resource rotate shop/db                                a database
-gg resource rotate shop/openai --set API_KEY=sk-new       one of an external's values
-gg resource rotate shop/openai --env-file .env.new        all of them
+gg resource rotate shop/db                                        a database
+gg resource rotate shop/openai --set API_KEY="$(cat new.key)"     one of an external's values
+gg resource rotate shop/openai --env-file .env.new                all of them
 ```
 
 Everything holding the old credential is restarted with the new one, and the
 command names what it rolled. Nothing but variable *names* is printed;
-`gg resource secrets` reads the values.
+`gg resource secrets` reads the values, into a file.
 
 **Who supplies the new value is the only difference between the types.** For
 `postgres`, `qdrant`, `valkey`, `iggy`, `rabbitmq` and `s3`, Gagarin mints one and `--env` is refused — a
