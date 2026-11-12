@@ -31,3 +31,8 @@ is waiting on — theirs or Gagarin's. Say which.
 If the Gagarin MCP tools are connected and `gg` is not installed — or you
 cannot run commands where you are — use the `status` tool instead; it reads the
 same thing. `projects` lists what there is when no project was named.
+
+For "why is it slow", "is it running out of memory", "is the disk filling":
+`gg status` says what is running, not how hard. Run `gg metrics <project>`, or
+`gg metrics <project>/<service> --window 24h` for one service over time; the
+`metrics` tool is the same. Answer from those numbers.
