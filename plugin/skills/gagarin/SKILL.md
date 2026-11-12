@@ -807,7 +807,8 @@ gg ship shop/db:5432 --volume /var/lib/postgresql/data --volume-size 20
 A directory that survives restarts. **Set once, at the deploy that creates the
 service**; a later deploy cannot move it or resize it, and asking is refused with
 `volume_immutable`. The default ceiling is 10 GB. A rollback across a change of
-volume is refused for the same reason.
+volume is refused for the same reason. It is writable by whatever user the image
+runs as, so an image with a non-root `USER` needs no chown or init step.
 
 Use this for anything stateful that has no resource type — see "Anything we do
 not have a type for".
