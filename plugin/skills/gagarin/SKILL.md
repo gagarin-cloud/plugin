@@ -91,9 +91,10 @@ first; they are the parts that stop you getting it wrong.
 | `gg deps add P/SVC NAME...` / `deps ls` / `deps rm` | what a service may reach, and whose credentials it holds (`rm` needs a human) |
 | `gg domain add P/SVC [DOMAIN]` / `domain ls P` / `domain rm` | addresses on the internet |
 | `gg status PROJECT` | desired vs actual, addresses, sizes, today's cost |
+| `gg metrics P[/SVC] [--window 1h\|24h\|7d\|30d]` | usage from real numbers: every service now, or one service's last value (and when), average, peak and limit over a window. See Metrics |
 | `gg logs P/SVC` | recent logs |
 | `gg history P/SVC` / `gg rollback P/SVC [--to N]` | every deploy; put one back |
-| alerts (no gg command) | push-notify a member's own devices when a service goes down; the human turns it on with the switch at my.gagarin.cloud/projects/P/alerts, which also sends a test. See Alerts |
+| alerts (no gg command) | push-notify a member's own devices when a service goes down, runs short of memory, CPU or disk, or answers with 5xx; the human turns it on with the switch at my.gagarin.cloud/projects/P/alerts, which also sends a test. See Alerts |
 | `gg referral` | the account's invite link and code (once it has topped up), and who signed up through it and what it earned; in MCP, `referrals` |
 | `gg members P` / `gg share P EMAIL [--role viewer]` / `gg unshare P EMAIL` | who can reach it |
 | `gg transfer P EMAIL` | offer the project, and its bill, to a member (they accept by email) |
@@ -640,7 +641,8 @@ turn, in this order:
    is running, and what may reach what. Nothing to run, so this one is a
    sentence and a link.
 2. **Alerts.** Ask whether the human wants a push on their phone when the
-   service goes down, a deploy will not start, or a container keeps crashing.
+   service goes down, a deploy will not start, a container keeps crashing, or
+   one runs short of memory, CPU or disk.
    If yes, they open `https://my.gagarin.cloud/projects/<id>/alerts` on that
    phone and turn on "Notify me about this project", which allows notifications
    and opts them in at once; the same page sends a test. On an iPhone they add
@@ -2146,8 +2148,8 @@ this project", which allows notifications on that device and opts the member in
 at once, and sends a test from the same page. Point the human there, on the
 phone they want the push on. Turning the switch off there opts them out.
 
-There is no gg command for alerts: talking the human through that page is your
-part. With the MCP server connected, `alerts` says whether the caller is opted
+There is no gg command for alerts (`gg metrics` is for the numbers, below):
+talking the human through that page is your part. With the MCP server connected, `alerts` says whether the caller is opted
 in, how many devices they have, and the last few notifications; `test_alerts`
 sends a test once they say it is on; each takes only the project. Opting in is
 per member, so one member turning alerts on does not turn them on for anyone
@@ -2161,12 +2163,44 @@ If the human has no device yet, hand them that page. Then they hear
 when a service has been down for three minutes, when a deploy will not start
 (the previous revision keeps serving), and when a container crashes and
 restarts, once when it starts and once when it ends, never on repeat. The
-console keeps a 30-day feed of these notifications. There are no rules to
-choose. Offer alerts after a first deploy that a human cares about; do not turn
-them on without asking, because the notifications go to somebody.
+console keeps a 30-day feed of these notifications. Four more come from the
+metrics, each also once when it starts and once when it resolves: memory at 80%
+of its limit or more for 5 minutes (resolves under 75%); CPU at 80% of its
+limit or more for 10 minutes (resolves under 70%); a volume 85% full (resolves
+under 80%); and 5% or more of requests answered with 5xx over 5 minutes, with
+at least 20 requests (resolves under 2%). Tapping one of these opens that
+service's graphs. They are part of the same fixed set. There are no rules or
+thresholds to choose. Offer alerts after a first deploy that a human cares
+about; do not turn them on without asking, because the notifications go to somebody.
 
 The old ntfy alerts are gone: `--server`, `--topic` and `--token` no longer
 exist, and sending them is refused with `ntfy_removed`.
+
+## Metrics
+
+Every cluster keeps a metrics store, 30 days deep. For each service, and each
+resource (postgres, qdrant, iggy, rabbitmq, valkey), it holds CPU used against
+its limit (cores), memory against its limit (bytes), volume disk used against
+its size, CPU throttling (the share of periods), and network in and out
+(bytes/s); for a service with a public address, also requests/s, the share of
+5xx and p95 latency. Windows are `1h`, `24h`, `7d` and `30d`. A figure that was
+not measured is `null`: a service that just started, no volume, no address.
+Figures appear a minute or two after a service starts.
+
+- `gg metrics PROJECT` is a table of every service now: kind, CPU, memory,
+  disk, throttling and network, plus req/s, 5xx and p95 for the public ones.
+- `gg metrics PROJECT/SVC [--window 1h|24h|7d|30d]` gives the last value and
+  when it was taken, average, peak and limit for each figure over the window.
+- In MCP, `metrics` takes `{project, service?, window?}`: project-wide figures
+  now, or one service's last (with `last_at`)/avg/peak/limit per series over a
+  window. `window` without `service` is refused `window_needs_service`.
+- The console has a **Metrics** tab, `https://my.gagarin.cloud/projects/<id>/metrics`
+  (`?service=NAME&window=24h`).
+
+Use it to answer "why is it slow", "is it running out of memory" and "is the
+disk filling" from numbers rather than a guess. `gg status` stays the answer to
+"is it up". `metrics_unavailable` means the cluster has no metrics store or it
+did not answer: retry in a minute.
 
 ## Sharing a project
 
@@ -2345,6 +2379,13 @@ gg prints failures as `[code] message`, usually with a `hint:` line under it.
 | `no_devices` | `test_alerts` and the caller has no device. The human allows notifications at https://my.gagarin.cloud/projects/P/alerts (iPhone: add the app to the Home Screen first) |
 | `invalid_subscription` | the browser's push subscription was refused (not https, not a known push service, bad keys). The human re-enables notifications in the console |
 | `push_unconfigured` | the platform has no push keys yet. Nothing to fix on your side; tell the user |
+
+**Metrics**
+
+| code | what to do |
+|---|---|
+| `metrics_unavailable` | 503: the cluster has no metrics store, or it did not answer. Retry in a minute; `gg status` still shows what is running |
+| `no_such_service` | 404 on `gg metrics P/SVC` or `metrics`: that name is not a service here. `gg status` lists them |
 
 **Services, images and deploys**
 

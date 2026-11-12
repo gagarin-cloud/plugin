@@ -1,7 +1,7 @@
 {
   "name": "gagarin",
   "displayName": "Gagarin Cloud",
-  "version": "1.23.0",
+  "version": "1.24.0",
   "description": "Deploy and operate applications on Gagarin Cloud — ship a service from a Dockerfile, provision postgres (with extensions such as pgvector and PostGIS), qdrant, valkey, iggy, rabbitmq or s3, wire what may reach what, and put it on the internet.",
   "author": {
     "name": "Gagarin Cloud",
