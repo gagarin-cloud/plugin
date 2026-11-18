@@ -795,6 +795,13 @@ gg resource add shop/db postgres --size m
   `gg status` says so and names the size to move to — or when you already know
   the workload: server-side-rendered Next.js, a JVM, a large in-process cache, a
   postgres a real application depends on. Do not reach for `l` speculatively.
+- **A postgres's size also sets its settings**: at most **60, 105 or 119
+  connections** at `s`, `m` or `l`, shared buffers of 128 MB, 512 MB or 1 GB,
+  and `work_mem` of 2, 2 or 4 MB. They are the platform's, not a flag; a query
+  that needs more sort memory runs `SET work_mem` for its own session. A
+  postgres created before 2026-11-17 keeps stock settings (100 connections)
+  until its next resize. If an app runs out of connections, pool them — or
+  move up a size.
 - `gg status` shows the size every service is running at, and the day's accrued
   cost at the bottom of the table.
 
