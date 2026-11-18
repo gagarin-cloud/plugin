@@ -86,8 +86,8 @@ else waits on it.
 - **Never invent a flag.** A refused command names the shape it should have had;
   read the refusal. Error codes are stable — act on the code, not the prose.
 - **A deploy replaces the environment and nothing else.** Restate every variable
-  every time. Dependencies, the domain, the volume and the size all survive a
-  deploy that forgets to mention them; env does not.
+  every time. Dependencies, the domain, the volume, the size and the replica
+  count all survive a deploy that forgets to mention them; env does not.
 - **No secret goes in a deploy env.** A Gagarin database's credentials arrive
   with `gg deps add`; a third-party key (Stripe, OpenAI, SMTP, a webhook secret)
   becomes an `external` resource, written to a file, never passed with `--env`.

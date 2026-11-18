@@ -37,8 +37,8 @@ first; they are the parts that stop you getting it wrong.
    credentials.** Connecting a database is that one call, not a call plus a
    deploy.
 7. **A deploy replaces the environment and nothing else.** Dependencies, the
-   domain, the volume and the size all survive a deploy that forgets to mention
-   them. Env is the one thing you must restate every time.
+   domain, the volume, the size and the replica count all survive a deploy that
+   forgets to mention them. Env is the one thing you must restate every time.
    **A credential never goes in a deploy env.** Env is for plain, single-service
    config: a port, a log level, a sibling's URL. A database password arrives
    with `gg deps add`; a third-party key is an `external` resource. See "What
@@ -804,6 +804,30 @@ gg resource add shop/db postgres --size m
   move up a size.
 - `gg status` shows the size every service is running at, and the day's accrued
   cost at the bottom of the table.
+
+### Replicas
+
+A service runs one copy unless it says otherwise. `--replicas` on `gg deploy`
+or `gg ship` sets a fixed count, or a range the platform scales within on CPU:
+
+```
+gg deploy shop/web:8080 web:v3 --replicas 3     always three copies
+gg ship shop/api:4000 --replicas 1-5            one to five, by CPU load
+gg deploy shop/web:8080 web:v4 --replicas 1     back to one
+```
+
+- **Omitting `--replicas` keeps what the service has**, like `--size`.
+- **Every copy is billed at its size's rate while it runs.** A range bills its
+  minimum all the time and each extra copy only while it is up. At most five.
+- **Only a service without a volume.** A service with a volume always runs one
+  copy (`replicas_with_volume`); resources and jobs have no replicas. A
+  database does not get replicas or failover from this.
+- **More copies help CPU, not memory.** A service that is OOM-killed needs a
+  bigger size; one that is CPU-bound under load, or must stay up through a
+  node drain, wants `--replicas 2` or a range. Copies share nothing in memory,
+  so in-process sessions or caches must live in valkey or postgres first.
+- `gg status` adds a REPLICAS column once anything in the project may run more
+  than one.
 
 ### Volumes
 
