@@ -62,8 +62,8 @@ line to add. `gg upgrade` (v0.54.0 and later) keeps it current.
 Prefer a package manager? On macOS, `brew install --cask gagarin-cloud/tap/gg` —
 a cask, so it is macOS only, and if you installed `gg` as a formula before that,
 `brew uninstall gg` once first. On Windows, `scoop bucket add gagarin
-https://github.com/gagarin-cloud/scoop-bucket` then `scoop install gagarin/gg`,
-or `winget install Gagarin.gg`. Or `go install
+https://github.com/gagarin-cloud/scoop-bucket` then `scoop install gagarin/gg`.
+Or `go install
 github.com/gagarin-cloud/gg@latest`, or a `.deb`, `.rpm` or `.apk` from the
 [releases page](https://github.com/gagarin-cloud/gg/releases).
 

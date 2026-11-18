@@ -244,7 +244,7 @@ Use a package manager the machine already has. You may run these yourself:
   replace one kind with the other on its own: run `brew uninstall gg` once,
   then install the cask.
 - Windows: `scoop bucket add gagarin https://github.com/gagarin-cloud/scoop-bucket`
-  then `scoop install gagarin/gg`, or `winget install Gagarin.gg`.
+  then `scoop install gagarin/gg`.
 - Any platform with a Go toolchain: `go install github.com/gagarin-cloud/gg@latest`
 
 If `go install` succeeds but the shell still cannot find `gg`, its bin directory
@@ -285,13 +285,13 @@ be newer than the `gg` you are holding: **if a command here is refused as
 unknown, check `gg version` and upgrade before concluding the command does not
 exist.** `gg version` also prints, on stderr, "gg vX is available (you have vY)"
 when you are behind (`GAGARIN_NO_UPDATE_CHECK=1` silences it). Upgrade with
-`gg upgrade`, which upgrades the way `gg` was installed: brew, scoop, winget and
+`gg upgrade`, which upgrades the way `gg` was installed: brew, scoop and
 `go install` are handed to that tool, script and archive installs replace
 themselves after checking the checksum, and `.deb`/`.rpm`/`.apk` installs print a
 `sudo` command for your human. `gg upgrade --dry-run` previews it. `gg upgrade`
 itself needs v0.54.0; on an older `gg` it does not exist, so use the per-manager
 command (`brew upgrade --cask gagarin-cloud/tap/gg`, `scoop update gg`,
-`winget upgrade Gagarin.gg`, `go install ...@latest`) or, for an installer or
+`go install ...@latest`) or, for an installer or
 archive install, have your human run the installer again as "Installing gg"
 says. Everything else documented here is present in gg
 v0.42.0 and later.

@@ -22,12 +22,12 @@ advice as step 2 does.
 
 ## 2. Install it
 
-Use a package manager the machine already has. `command -v brew winget scoop go`
+Use a package manager the machine already has. `command -v brew scoop go`
 says which. You may run these yourself:
 
 - macOS: `brew install --cask gagarin-cloud/tap/gg` (macOS only — casks do not
   work on Linux)
-- Windows: `winget install Gagarin.gg`, or `scoop bucket add gagarin
+- Windows: `scoop bucket add gagarin
   https://github.com/gagarin-cloud/scoop-bucket` then `scoop install gagarin/gg`
 - any platform with a Go toolchain: `go install github.com/gagarin-cloud/gg@latest`
 
@@ -70,14 +70,14 @@ The skill ships in this plugin, not in `gg`, so the two update separately and it
 can describe a `gg` newer than theirs. Run `gg version`. If it prints "gg vX is
 available (you have vY)" on stderr, theirs is behind (`GAGARIN_NO_UPDATE_CHECK=1`
 silences that check). Say so and run `gg upgrade`: it upgrades the way `gg` was
-installed — brew, scoop, winget and `go install` are handed to that tool, a
+installed — brew, scoop and `go install` are handed to that tool, a
 script or archive install replaces itself after checking the checksum, and a
 `.deb`/`.rpm`/`.apk` install prints a `sudo` command for the human to run.
 `gg upgrade --dry-run` previews it first.
 
 `gg upgrade` exists from v0.54.0. If theirs is older it will say the command is
 unknown: use the per-manager command (`brew upgrade --cask gagarin-cloud/tap/gg`,
-`scoop update gg`, `winget upgrade Gagarin.gg`, or `go install ...@latest`), or,
+`scoop update gg`, or `go install ...@latest`), or,
 for an installer or archive install, have them run the installer again as step 2
 says. Do this rather than letting an agent meet a refusal later and conclude the
 command does not exist.
