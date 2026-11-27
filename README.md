@@ -13,7 +13,8 @@ privacy.
 codex plugin marketplace add gagarin-cloud/plugin   # Codex CLI
 ```
 
-In ChatGPT and the Codex app, search the Plugins Directory for Gagarin.
+In ChatGPT and the Codex app, install it from the
+[Plugins Directory](https://chatgpt.com/plugins/plugin_asdk_app_6af236f4f560819194b7c812c0dbfb41).
 
 This repository used to be `gagarin-cloud/claude-plugin`. It was renamed on
 2026-11-09 when the same folder started serving OpenAI's hosts too; the old

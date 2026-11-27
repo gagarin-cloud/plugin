@@ -11,7 +11,7 @@ One plugin, three hosts:
 |---|---|
 | **Claude Code** | `/plugin marketplace add gagarin-cloud/plugin` then `/plugin install gagarin@gagarin-cloud` |
 | **Codex CLI** | `codex plugin marketplace add gagarin-cloud/plugin`, then `/plugins` |
-| **ChatGPT, Codex app** | search the Plugins Directory for *Gagarin Cloud* |
+| **ChatGPT, Codex app** | install *Gagarin Cloud* from the [Plugins Directory](https://chatgpt.com/plugins/plugin_asdk_app_6af236f4f560819194b7c812c0dbfb41) |
 
 That gives you two things:
 
